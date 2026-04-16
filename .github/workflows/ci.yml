@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Test internal package (-race)
+        # The internal/githubapp package is self-contained; it's where all
+        # the real logic + all the tests live. The cmd/ + pluginloader/
+        # packages require the molecule-core platform module to compile
+        # (for provisionhook.Registry) — that's integration territory,
+        # validated by the platform's own CI when the plugin is pulled in.
+        run: go test ./internal/... -race -count=1
+
+      - name: Vet internal package
+        run: go vet ./internal/...
