@@ -134,20 +134,32 @@ func New(cfg Config) (*Authenticator, error) {
 // would shave microseconds off the uncontended path without changing
 // the worst case; not worth the added complexity here.
 func (a *Authenticator) Token(ctx context.Context) (string, error) {
+	tok, _, err := a.TokenWithExpiry(ctx)
+	return tok, err
+}
+
+// TokenWithExpiry returns the cached installation token together with the
+// time it will expire. Same caching contract as Token() — never returns an
+// expired token, blocks the caller for the GitHub roundtrip on a cache
+// miss. Added to support the platform's GET /admin/github-installation-token
+// endpoint (molecule-core#567), where workspace credential helpers need
+// both the token and a refresh-by-deadline so they can pre-warm the cache
+// before next use.
+func (a *Authenticator) TokenWithExpiry(ctx context.Context) (string, time.Time, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	if a.token != "" && time.Until(a.expiresAt) > a.cfg.RefreshBuffer {
-		return a.token, nil
+		return a.token, a.expiresAt, nil
 	}
 
 	token, expiresAt, err := a.mintInstallationToken(ctx)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 	a.token = token
 	a.expiresAt = expiresAt
-	return token, nil
+	return token, expiresAt, nil
 }
 
 // mintInstallationToken does the actual JWT→POST exchange. Separate from
