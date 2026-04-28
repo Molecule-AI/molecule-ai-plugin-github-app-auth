@@ -4,10 +4,10 @@
 //
 // Auth flow per GitHub docs:
 //
-//	1. Mint a JWT signed with the App's RSA private key (RS256, 9-min exp).
-//	2. POST the JWT to /app/installations/{installation_id}/access_tokens.
-//	3. Response includes an installation token valid ~60 min + expires_at.
-//	4. Cache the token in memory; refresh when <5 min remaining.
+//  1. Mint a JWT signed with the App's RSA private key (RS256, 9-min exp).
+//  2. POST the JWT to /app/installations/{installation_id}/access_tokens.
+//  3. Response includes an installation token valid ~60 min + expires_at.
+//  4. Cache the token in memory; refresh when <5 min remaining.
 //
 // The token rotates automatically across cron ticks. Every workspace in the
 // platform process shares the same installation token because they all
