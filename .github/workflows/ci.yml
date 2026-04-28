@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  # Org-wide secret-scan reusable workflow. Refuses any PR / push whose
+  # diff additions contain a recognisable credential. Defense-in-depth
+  # for the #2090-class incident — Go-binary plugins were the only
+  # subset of the plugin fleet still skipping it (the other ~13 plugin
+  # repos use validate-plugin.yml from molecule-ci which bundles the
+  # same scan, but validate-plugin.yml is skill/prompt-shaped and
+  # doesn't fit Go-binary plugins).
+  #
+  # Pin to @staging per the canonical pattern documented in the
+  # workflow header (staging is the active default branch on
+  # molecule-core; main lags via the promotion workflow).
+  secret-scan:
+    uses: Molecule-AI/molecule-core/.github/workflows/secret-scan.yml@staging
+
   test:
     runs-on: ubuntu-latest
     steps:
