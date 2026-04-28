@@ -33,3 +33,9 @@ jobs:
     uses: Molecule-AI/molecule-ci/.github/workflows/validate-go-plugin.yml@staging
     with:
       packages: ./internal/...
+      # go.mod uses `replace github.com/Molecule-AI/molecule-monorepo/platform
+      # => ../molecule-monorepo/platform` so operators can build the plugin
+      # against their local platform checkout. CI doesn't have that path, so
+      # `go mod tidy` errors before its diff check fires. Skip the tidy gate;
+      # build + vet + test + gofmt + govulncheck remain active.
+      skip-mod-tidy: true
