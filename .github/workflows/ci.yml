@@ -6,6 +6,16 @@ on:
   pull_request:
 
 jobs:
+  # Canonical plugin validation: spec validation + secret scan, run via
+  # the org-wide reusable workflow. Every other Molecule plugin repo
+  # uses this; the two Go plugins (this one + gh-identity) used to skip
+  # it because their existing ci.yml only ran Go-specific test/vet.
+  # That meant a plugin spec misconfig or a committed credential could
+  # ship a release without ever being scanned (the security-relevant
+  # gap in the publish pipeline).
+  validate:
+    uses: Molecule-AI/molecule-ci/.github/workflows/validate-plugin.yml@main
+
   test:
     runs-on: ubuntu-latest
     steps:
