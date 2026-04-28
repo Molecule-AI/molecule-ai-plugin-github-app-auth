@@ -8,11 +8,10 @@ on:
 jobs:
   # Org-wide secret-scan reusable workflow. Refuses any PR / push whose
   # diff additions contain a recognisable credential. Defense-in-depth
-  # for the #2090-class incident — Go-binary plugins were the only
-  # subset of the plugin fleet still skipping it (the other ~13 plugin
-  # repos use validate-plugin.yml from molecule-ci which bundles the
-  # same scan, but validate-plugin.yml is skill/prompt-shaped and
-  # doesn't fit Go-binary plugins).
+  # for the #2090-class incident — kept as a sibling job (rather than
+  # nested inside validate-go-plugin) because the secret-scan canonical
+  # lives in molecule-core, not molecule-ci. Two top-level uses: blocks
+  # beats one nested workflow_call chain.
   #
   # Pin to @staging per the canonical pattern documented in the
   # workflow header (staging is the active default branch on
@@ -20,22 +19,17 @@ jobs:
   secret-scan:
     uses: Molecule-AI/molecule-core/.github/workflows/secret-scan.yml@staging
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-
-      - name: Test internal package (-race)
-        # The internal/githubapp package is self-contained; it's where all
-        # the real logic + all the tests live. The cmd/ + pluginloader/
-        # packages require the molecule-core platform module to compile
-        # (for provisionhook.Registry) — that's integration territory,
-        # validated by the platform's own CI when the plugin is pulled in.
-        run: go test ./internal/... -race -count=1
-
-      - name: Vet internal package
-        run: go vet ./internal/...
+  # Org-wide Go-plugin gates: go mod tidy clean, build, vet, test
+  # -race, gofmt -l, govulncheck. Replaces the inline copy of these
+  # steps that lived here before — single source of truth for Go
+  # plugin CI lives in molecule-ci/validate-go-plugin.yml.
+  #
+  # packages: ./internal/... — the cmd/ + pluginloader/ packages
+  # require the molecule-core platform module to compile (for
+  # provisionhook.Registry). Integration is validated by the
+  # platform's own CI when the plugin is pulled in. Inside this
+  # repo we only gate the self-contained internal/githubapp logic.
+  validate-go:
+    uses: Molecule-AI/molecule-ci/.github/workflows/validate-go-plugin.yml@staging
+    with:
+      packages: ./internal/...
